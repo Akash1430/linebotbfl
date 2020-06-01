@@ -90,7 +90,7 @@ public class LinebotbflApplication {
     public String getMessage(String originalMessage) 
     {
 
-        String uri = baseUri + "/query/?q=Select+" + "value__c+" + "From+" + "BotKnowledgeBase__c+" + "Where+" + "Name+"
+        String uri = baseUri + "/query/?q=Select+" + "keywordvalue__c+" + "From+" + "knowlegebase__c+" + "Where+" + "keyword__c+"
                 + "=+" + "'" + originalMessage + "'";
 System.out.println("url sending to sf: " + uri);
         try {
@@ -243,7 +243,7 @@ System.out.println("url sending to sf: " + uri);
 
     private String getUserName(String followedUserId) {
 		  LineMessagingClient client = LineMessagingClient.builder(
-				  "h9CYzPXg/rTBqqqqzzzkkSHn0IwelbzkGPp16JytO06iROwfrvW+rgEwsoEq0ZTDKwsNMnEiJ/3Dc3YYo9RioYNl2eBXNWtqu27jGzzUFeSNQnI59PhcbeYjpe83L9NunkszEg/TXe2Q5RLTGrwSIQdB04t89/1O/w1cDnyilFU=")
+				  "iqlit3aTR2DgK328eKrxVoGQQGmI3Y11iNUgBdd2622L+t8hKKjjABRc9CJgTR7ShFzDyQ4Rw392PJinD86MXxsRY4ojeftt3WIIma9DQ0B6NcGQ1yBThbZYt/IysJP5IKmq8qTq+wrBLWVmI9ndWwdB04t89/1O/w1cDnyilFU=")
 		  .build(); 
 		  UserProfileResponse userProfileResponse = null; 
 		  try {
