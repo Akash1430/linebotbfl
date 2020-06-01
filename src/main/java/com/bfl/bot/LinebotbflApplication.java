@@ -400,6 +400,7 @@ public class LinebotbflApplication {
             // create the JSON object containing the new contact details.
             JSONObject knowledgeBase = new JSONObject();
             //contact.put("FirstName", userName);
+            knowledgeBase.put("Name", originalMessageText);
             knowledgeBase.put("keyword__c", originalMessageText);
 
             System.out.println("JSON for knowlegebase__c record to be inserted:\n" + knowledgeBase.toString(1));
