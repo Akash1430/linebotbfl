@@ -51,21 +51,23 @@ public class LinebotbflApplication {
     private static Header oauthHeader;
     private static Header prettyPrintHeader = new BasicHeader("X-PrettyPrint", "1");
     
-	public static void main(String[] args) {
+    public static void main(String[] args) {
 		SpringApplication.run(LinebotbflApplication.class, args);
 	}
 
     @EventMapping
     public TextMessage handleTextMessageEvent(MessageEvent<TextMessageContent> event) {
-    	String userName = null;
-    	
-    	CreateConnection();
-    	final String followedUserId = event.getSource().getUserId();
-    	String originalMessageText = event.getMessage().getText().toUpperCase();
-    	String replyBotMessage = getMessage(originalMessageText);
+		String userName = null;
 		
-		 if(replyBotMessage == null || replyBotMessage == "") { 
-			 replyBotMessage = "Line User Id: " + followedUserId;
+		CreateConnection();
+		final String followedUserId = event.getSource().getUserId();
+		String originalMessageText = event.getMessage().getText().toUpperCase();
+		String replyBotMessage = getMessage(originalMessageText);
+		
+		 if(replyBotMessage == null) { 
+			 replyBotMessage = "An agent will contact you soon with your query.";
+			 //Save the keyword in line admin
+			 createNewKeyword(originalMessageText); 
 		 }
 		 
 		 contactId = getContactId(followedUserId);
@@ -81,7 +83,6 @@ public class LinebotbflApplication {
         return new TextMessage(replyBotMessage);
     }
 
-
 	@EventMapping
     public void handleDefaultMessageEvent(Event event) {
         System.out.println("event: " + event);
@@ -89,10 +90,13 @@ public class LinebotbflApplication {
  
     public String getMessage(String originalMessage) 
     {
-
-        String uri = baseUri + "/query/?q=Select+" + "keywordvalue__c+" + "From+" + "knowlegebase__c+" + "Where+" + "keyword__c+"
-                + "=+" + "'" + originalMessage + "'";
-System.out.println("url sending to sf: " + uri);
+    	if(originalMessage.contains(" ")) {
+    		originalMessage = originalMessage.replaceAll("\\s+","+");
+    		System.out.println("replace white space with + sign: " + originalMessage);
+    	}
+    	 String uri = baseUri + "/query/?q=Select+" + "keywordvalue__c+" + "From+" + "knowlegebase__c+" + "Where+" + "keyword__c+"
+                 + "=+" + "'" + originalMessage + "'";
+        System.out.println("url sending to sf: " + uri);
         try {
 
             HttpClient httpClient = HttpClientBuilder.create().build();
@@ -116,7 +120,7 @@ System.out.println("url sending to sf: " + uri);
                 if (statusCode == 200) {
                     String responseString = EntityUtils.toString(response.getEntity());
                     JSONObject jsonObject = new JSONObject(responseString);
-                    String result = "";
+                    String result = null;
                     JSONArray jsonArray = jsonObject.getJSONArray("records");
                     for (int i = 0; i < jsonArray.length(); i++) {
                         result = jsonObject.getJSONArray("records").getJSONObject(i).getString("value__c");
@@ -243,8 +247,7 @@ System.out.println("url sending to sf: " + uri);
 
     private String getUserName(String followedUserId) {
 		  LineMessagingClient client = LineMessagingClient.builder(
-				  "iqlit3aTR2DgK328eKrxVoGQQGmI3Y11iNUgBdd2622L+t8hKKjjABRc9CJgTR7ShFzDyQ4Rw392PJinD86MXxsRY4ojeftt3WIIma9DQ0B6NcGQ1yBThbZYt/IysJP5IKmq8qTq+wrBLWVmI9ndWwdB04t89/1O/w1cDnyilFU=")
-		  .build(); 
+				  "iqlit3aTR2DgK328eKrxVoGQQGmI3Y11iNUgBdd2622L+t8hKKjjABRc9CJgTR7ShFzDyQ4Rw392PJinD86MXxsRY4ojeftt3WIIma9DQ0B6NcGQ1yBThbZYt/IysJP5IKmq8qTq+wrBLWVmI9ndWwdB04t89/1O/w1cDnyilFU=")		  .build(); 
 		  UserProfileResponse userProfileResponse = null; 
 		  try {
 			  userProfileResponse = client.getProfile(followedUserId).get(); 
@@ -389,4 +392,49 @@ System.out.println("url sending to sf: " + uri);
 		
 	}
 
+	private void createNewKeyword(String originalMessageText) {
+		// TODO Auto-generated method stub
+        String uri = baseUri + "/sobjects/knowlegebase__c/";
+        try {
+
+            // create the JSON object containing the new contact details.
+            JSONObject knowledgeBase = new JSONObject();
+            //contact.put("FirstName", userName);
+            knowledgeBase.put("keyword__c", originalMessageText);
+
+            System.out.println("JSON for knowlegebase__c record to be inserted:\n" + knowledgeBase.toString(1));
+
+            // Construct the objects needed for the request
+            HttpClient httpClient = HttpClientBuilder.create().build();
+
+            HttpPost httpPost = new HttpPost(uri);
+            httpPost.addHeader(oauthHeader);
+            httpPost.addHeader(prettyPrintHeader);
+            // The message we are going to post
+            StringEntity body = new StringEntity(knowledgeBase.toString(1));
+            body.setContentType("application/json");
+            httpPost.setEntity(body);
+
+            // Make the request
+            HttpResponse response = httpClient.execute(httpPost);
+
+            // Process the results
+            int statusCode = response.getStatusLine().getStatusCode();
+            if (statusCode == 201) {
+                String response_string = EntityUtils.toString(response.getEntity());
+                JSONObject json = new JSONObject(response_string);
+                contactId = json.getString("id");
+                System.out.println("BotKnowledgeBase__c Insertion successful. Status code returned is " + statusCode);
+            } else {
+                System.out.println("BotKnowledgeBase__c  Insertion unsuccessful. Status code returned is " + statusCode);
+            }
+        } catch (JSONException e) {
+            System.out.println("Issue creating JSON or processing results for BotKnowledgeBase__c insertion.");
+            e.printStackTrace();
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+        } catch (NullPointerException npe) {
+            npe.printStackTrace();
+        }
+	}
 }
